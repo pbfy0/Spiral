@@ -7,6 +7,7 @@ marker = null
 base = Math.pow(gr, 10)
 oc = view.center
 offset = 0
+
 fib_cache = {}
 fib = (n) ->
 	if n of fib_cache then return fib_cache[n]
@@ -16,20 +17,32 @@ fib = (n) ->
 
 onMouseMove = (ev) ->
 	mousePos = ev.point
+
+scale = (n, center) ->
+	zoom *= n
+	group.scale(n, center || marker.position)
+	#if settings.numbers
+	scale_text(1/n)
 transform = (p, d) ->
 	if d == 0 then return p
 	if d == 90 then return new Point(-p.x, p.y)
 	if d == 180 then return new Point(-p.x, -p.y)
 	if d == 270 then return new Point(p.x, -p.y)
 update_text = () ->
+	console.log('update_text')
 	for t in texts
-		t.content = fib(t.data.n + offset)
+		t.content = if (t.data.n + offset) < 0 then '' else fib(t.data.n + offset)
+
 scale_text = (ratio) ->
+	console.log('scale_text')
 	for t in texts
-		t.data.scale *= ratio
 		t.scale(ratio)#, new Point(t.bounds.x + t.bounds.width, t.bounds.y+t.bounds.height-4.95))
-		t.position = t.data.marker.position - transform(new Point(-t.bounds.width/2, -t.bounds.height/2), t.data.dir)
-		t.visible = if t.data.n <= 1 then t.data.scale < 0.1 else t.data.marker.position.getDistance(marker.position) > 5
+		if settings.numbers
+			t.position = t.data.marker.position - transform(new Point(-t.bounds.width/2, -t.bounds.height/2), t.data.dir)
+			t.visible = if t.data.n <= 1 then zoom > 15 else t.data.marker.position.getDistance(marker.position) > 5
+			if not t.visible then console.log(t.data.n, zoom)
+		else
+			t.visible = false
 		#t.distanceTo(marker) < 10
 			
 document.addEventListener 'mousewheel', (event) ->
@@ -40,26 +53,17 @@ document.addEventListener 'mousewheel', (event) ->
 	c = Math.pow(factor, 1/20)
 	cmp = mousePos
 	interval = setInterval () ->
-		a = group.position
-		group.scale(c, cmp)
-		b = group.position
-		scale_text(1/c)
-		#console.log(texts[0].sss)
-		zoom *= c
+		scale(c, cmp)
 		view.zoom = view.zoom
 		#console.log(zoom)
 		if zoom < base*Math.pow(gr, 12)
-			zoom *= Math.pow(gr, -12)
-			group.scale(Math.pow(gr, -12), marker.position)
+			scale(Math.pow(gr, -12), null, true)
 			offset += 12
 			update_text()
-			scale_text(Math.pow(gr, 12))
-		if zoom > base*Math.pow(gr, -12)# and offset > 0
-			zoom *= Math.pow(gr, 12)
-			group.scale(Math.pow(gr, 12), marker.position)
+		if zoom > base*Math.pow(gr, -12) and (offset > 0 or settings.infiniteIn)
+			scale(Math.pow(gr, 12), null, true)
 			offset -= 12
 			update_text()
-			scale_text(Math.pow(gr, -12))
 		i++
 		if i > 20
 			clearInterval(interval);
@@ -74,8 +78,10 @@ arc_mdpt = (from, to, origin) ->
 	radius = from.getDistance(origin)
 	return new Point(origin.x + Math.sin(angle) * radius, origin.y + Math.cos(angle) * radius)
 texts = []
+centers = []
 window.t = texts
 initializePath = () ->
+	group.removeChildren()
 	arcCenter = new Point(0, 0)
 	[a, b] = [0, 1]
 	dir = 0
@@ -95,20 +101,20 @@ initializePath = () ->
 		
 		m = new Path.Circle(arcCenter, 0)
 		
-		
-		#t = new PointText(arcCenter)
-		#t.fillColor = 'white'
-		#t.fontSize = 12
-		#t.data.marker = m
-		#t.data.dir = dir
-		#t.data.n = i
-		#t.data.scale = 1
-		#t.translate(-t.bounds.width, 0)
-		#texts.push(t)
+		#if settings.numbers
+		t = new PointText(arcCenter)
+		t.fillColor = 'white'
+		t.fontSize = 12
+		t.data.marker = m
+		t.data.dir = dir
+		t.data.n = i
+		t.data.scale = 1
+		t.translate(-t.bounds.width, 0)
+		texts.push(t)
+		group.addChild(t)
 		
 		group.addChild(arc)
 		group.addChild(r)
-		#group.addChild(t)
 		group.addChild(m)
 		
 		arcCenter += (new Point(0, a)).rotate(dir+180)
@@ -116,15 +122,37 @@ initializePath = () ->
 		dir += 90
 		dir %= 360;
 	group.translate(view.center)
-	group.scale(base, marker.position)
-	offset = -18
 	update_text()
-	#scale_text(1)
-	scale_text(1/base)
-	zoom *= base
+	update_zoom()
+update_zoom = () ->
+	scale(1/zoom)
+	offset = 0
+	zoom = 1
+	if settings.infiniteIn
+		scale(base)
+		offset = -18
+	else
+		scale_text(1)
 	return
 
 initializePath()
+settings = {infiniteIn: true, numbers: false}
+do () ->
+	window.gui = new dat.GUI()
+	numbers = null
+	gui.add(settings, 'infiniteIn').onChange (value) ->
+		update_zoom()
+		if value
+			settings.numbers = false
+			gui.remove(numbers)
+		else
+			numbers = gui.add(settings, 'numbers')
+			numbers.onChange (value) ->
+				update_text()
+				scale_text(1)
+				return
+			console.log(numbers)
+		return
 
 onResize = () ->
 	group.translate((view.center - oc) / 2)
