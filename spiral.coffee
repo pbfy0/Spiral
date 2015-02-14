@@ -3,8 +3,9 @@ group = new Group()
 mousePos = new Point(0, 0)
 zoom = 1
 gr = (Math.sqrt(5)-1)/2
+gr_4 = Math.pow(gr, 4)
 marker = null
-base = Math.pow(gr, 10)
+base = Math.pow(gr, 12)
 oc = view.center
 offset = 0
 
@@ -21,7 +22,7 @@ onMouseMove = (ev) ->
 scale = (n, center) ->
 	zoom *= n
 	group.scale(n, center || marker.position)
-	#if settings.numbers
+	#if settings.labels
 	scale_text(1/n)
 transform = (p, d) ->
 	if d == 0 then return p
@@ -37,9 +38,9 @@ scale_text = (ratio) ->
 	console.log('scale_text')
 	for t in texts
 		t.scale(ratio)#, new Point(t.bounds.x + t.bounds.width, t.bounds.y+t.bounds.height-4.95))
-		if settings.numbers
+		if settings.labels
 			t.position = t.data.marker.position - transform(new Point(-t.bounds.width/2, -t.bounds.height/2), t.data.dir)
-			t.visible = if t.data.n <= 1 then zoom > 15 else t.data.marker.position.getDistance(marker.position) > 5
+			t.visible = if t.data.n <= 1 then zoom > 10 else t.data.marker.position.getDistance(marker.position) > 5
 			if not t.visible then console.log(t.data.n, zoom)
 		else
 			t.visible = false
@@ -101,14 +102,13 @@ initializePath = () ->
 		
 		m = new Path.Circle(arcCenter, 0)
 		
-		#if settings.numbers
+		#if settings.labels
 		t = new PointText(arcCenter)
 		t.fillColor = 'white'
 		t.fontSize = 12
 		t.data.marker = m
 		t.data.dir = dir
 		t.data.n = i
-		t.data.scale = 1
 		t.translate(-t.bounds.width, 0)
 		texts.push(t)
 		group.addChild(t)
@@ -123,35 +123,35 @@ initializePath = () ->
 		dir %= 360;
 	group.translate(view.center)
 	update_text()
-	update_zoom()
-update_zoom = () ->
+	update_zoom(true)
+update_zoom = (initial) ->
+	oz = zoom
 	scale(1/zoom)
 	offset = 0
-	zoom = 1
 	if settings.infiniteIn
 		scale(base)
 		offset = -18
 	else
 		scale_text(1)
+	if not initial
+		console.log(zoom/oz)
+		r = Math.log(zoom/oz) / Math.log(gr_4)
+		console.log(r)
+		n = r - (r | 0)
+		scale(Math.pow(gr_4, -n))
+
 	return
 
 initializePath()
-settings = {infiniteIn: true, numbers: false}
+settings = {infiniteIn: true, labels: false}
 do () ->
 	window.gui = new dat.GUI()
-	numbers = null
-	gui.add(settings, 'infiniteIn').onChange (value) ->
+	gui.add(settings, 'labels').onChange (value) ->
+		settings.infiniteIn = not value
 		update_zoom()
 		if value
-			settings.numbers = false
-			gui.remove(numbers)
-		else
-			numbers = gui.add(settings, 'numbers')
-			numbers.onChange (value) ->
-				update_text()
-				scale_text(1)
-				return
-			console.log(numbers)
+			update_text()
+			scale_text(1)
 		return
 
 onResize = () ->
