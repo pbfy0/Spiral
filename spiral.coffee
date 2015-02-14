@@ -31,12 +31,12 @@ transform = (p, d) ->
 	if d == 270 then return new Point(p.x, -p.y)
 update_text = () ->
 	console.log('update_text')
-	for t in texts
+	for t in texts.children
 		t.content = if (t.data.n + offset) < 0 then '' else fib(t.data.n + offset)
 
 scale_text = (ratio) ->
 	console.log('scale_text')
-	for t in texts
+	for t in texts.children
 		t.scale(ratio)#, new Point(t.bounds.x + t.bounds.width, t.bounds.y+t.bounds.height-4.95))
 		if settings.labels
 			t.position = t.data.marker.position - transform(new Point(-t.bounds.width/2, -t.bounds.height/2), t.data.dir)
@@ -78,8 +78,9 @@ arc_mdpt = (from, to, origin) ->
 	angle = Math.atan2(mdpt.x - origin.x, mdpt.y - origin.y)
 	radius = from.getDistance(origin)
 	return new Point(origin.x + Math.sin(angle) * radius, origin.y + Math.cos(angle) * radius)
-texts = []
-centers = []
+texts = new Group()
+spiral = new Group()
+boxes = new Group()
 window.t = texts
 initializePath = () ->
 	group.removeChildren()
@@ -110,29 +111,32 @@ initializePath = () ->
 		t.data.dir = dir
 		t.data.n = i
 		t.translate(-t.bounds.width, 0)
-		texts.push(t)
-		group.addChild(t)
 		
-		group.addChild(arc)
-		group.addChild(r)
+		spiral.addChild(arc)
+		boxes.addChild(r)
+		texts.addChild(t)
 		group.addChild(m)
 		
 		arcCenter += (new Point(0, a)).rotate(dir+180)
 		[a, b] = [b, a+b]
 		dir += 90
 		dir %= 360;
+	group.addChild(spiral)
+	group.addChild(boxes)
+	group.addChild(texts)
 	group.translate(view.center)
 	update_text()
 	update_zoom(true)
+
 update_zoom = (initial) ->
 	oz = zoom
 	scale(1/zoom)
-	offset = 0
 	if settings.infiniteIn
 		scale(base)
 		offset = -18
 	else
 		scale_text(1)
+		offset = 0
 	if not initial
 		console.log(zoom/oz)
 		r = Math.log(zoom/oz) / Math.log(gr_4)
@@ -143,7 +147,7 @@ update_zoom = (initial) ->
 	return
 
 initializePath()
-settings = {infiniteIn: true, labels: false}
+settings = {infiniteIn: true, labels: false, spiral: true, boxes: true}
 do () ->
 	window.gui = new dat.GUI()
 	gui.add(settings, 'labels').onChange (value) ->
@@ -153,6 +157,10 @@ do () ->
 			update_text()
 			scale_text(1)
 		return
+	gui.add(settings, 'spiral').onChange (value) ->
+		spiral.visible = value
+	gui.add(settings, 'boxes').onChange (value) ->
+		boxes.visible = value
 
 onResize = () ->
 	group.translate((view.center - oc) / 2)
