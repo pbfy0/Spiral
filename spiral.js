@@ -114,6 +114,8 @@ document.addEventListener('mousewheel', function(event) {
       return clearInterval(interval);
     }
   }, 1 / 120);
+  event.preventDefault();
+  return false;
 });
 
 arc_mdpt = function(from, to, origin) {
@@ -134,8 +136,6 @@ texts = new Group();
 spiral = new Group();
 
 boxes = new Group();
-
-window.g = group;
 
 initializePath = function() {
   var a, arc, arcCenter, b, dir, end, i, m, mdpt, r, start, t, _i, _ref, _ref1;
@@ -207,7 +207,8 @@ settings = {
 };
 
 (function() {
-  window.gui = new dat.GUI();
+  var gui;
+  gui = new dat.GUI();
   gui.add(settings, 'labels').onChange(function(value) {
     settings.infiniteIn = !value;
     update_zoom();

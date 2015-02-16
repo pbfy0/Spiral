@@ -70,7 +70,8 @@ document.addEventListener 'mousewheel', (event) ->
 			clearInterval(interval);
 	, 1/120
 
-	return 
+	event.preventDefault()
+	return false
 		#i.fontSize *= factor
 	
 arc_mdpt = (from, to, origin) ->
@@ -154,7 +155,7 @@ update_zoom = (initial) ->
 initializePath()
 settings = {infiniteIn: true, labels: false, spiral: true, boxes: true, invert: false}
 do () ->
-	window.gui = new dat.GUI()
+	gui = new dat.GUI()
 	gui.add(settings, 'labels').onChange (value) ->
 		settings.infiniteIn = not value
 		update_zoom()
