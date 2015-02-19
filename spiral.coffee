@@ -94,6 +94,7 @@ initializePath = () ->
 	dir = 0
 	marker = new Path.Circle(arcCenter, 0)
 	group.addChild(marker)
+	scaleGroup.addChild(marker)
 	for i in [0..40]
 		start = new Point(arcCenter.x, arcCenter.y+b).rotate(dir, arcCenter)
 		end = new Point(arcCenter.x+b, arcCenter.y).rotate(dir, arcCenter)
