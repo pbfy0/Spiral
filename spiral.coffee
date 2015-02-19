@@ -1,4 +1,5 @@
 group = new Group()
+scaleGroup = new Group()
 
 mousePos = new Point(0, 0)
 zoom = 1
@@ -15,16 +16,15 @@ fib = (n) ->
 	if n < 0 then return 0
 	if n == 0 then return 1
 	return fib_cache[n] = fib(n-1) + fib(n-2)
-	#return fib(n-1) + fib(n-2)
 
 onMouseMove = (ev) ->
 	mousePos = ev.point
 
 scale = (n, center) ->
 	zoom *= n
-	group.scale(n, center || marker.position)
+	scaleGroup.scale(n, center || marker.position)
 	#if settings.labels
-	scale_text(1/n)
+	scale_text()
 transform = (p, d) ->
 	if d == 0 then return p
 	if d == 90 then return new Point(-p.x, p.y)
@@ -35,10 +35,10 @@ update_text = () ->
 	for t in texts.children
 		t.content = if (t.data.n + offset) < 0 then '' else fib(t.data.n + offset)
 
-scale_text = (ratio) ->
+scale_text = () ->
 	#console.log('scale_text')
 	for t in texts.children
-		t.scale(ratio)#, new Point(t.bounds.x + t.bounds.width, t.bounds.y+t.bounds.height-4.95))
+		#t.scale(ratio)#, new Point(t.bounds.x + t.bounds.width, t.bounds.y+t.bounds.height-4.95))
 		if settings.labels
 			t.position = t.data.marker.position - transform(new Point(-t.bounds.width/2, -t.bounds.height/2), t.data.dir)
 			t.visible = if t.data.n <= 1 then zoom > 10 else t.data.marker.position.getDistance(marker.position) > 5
@@ -61,7 +61,7 @@ document.addEventListener 'mousewheel', (event) ->
 			scale(Math.pow(gr, -12), null, true)
 			offset += 12
 			update_text()
-		if zoom > base*Math.pow(gr, -12) and (offset > 0 or settings.infiniteIn)
+		if zoom > base*Math.pow(gr, -12) and (offset > 0 or settings.infinite)
 			scale(Math.pow(gr, 12), null, true)
 			offset -= 12
 			update_text()
@@ -93,7 +93,6 @@ initializePath = () ->
 	[a, b] = [0, 1]
 	dir = 0
 	marker = new Path.Circle(arcCenter, 0)
-	group.addChild(marker)
 	scaleGroup.addChild(marker)
 	for i in [0..40]
 		start = new Point(arcCenter.x, arcCenter.y+b).rotate(dir, arcCenter)
@@ -121,15 +120,19 @@ initializePath = () ->
 		spiral.addChild(arc)
 		boxes.addChild(r)
 		texts.addChild(t)
-		group.addChild(m)
+		scaleGroup.addChild(m)
 		
 		arcCenter += (new Point(0, a)).rotate(dir+180)
 		[a, b] = [b, a+b]
 		dir += 90
 		dir %= 360;
-	group.addChild(spiral)
-	group.addChild(boxes)
+	scaleGroup.addChild(spiral)
+	scaleGroup.addChild(boxes)
+	
 	group.addChild(texts)
+	group.addChild(scaleGroup)
+	#scaleGroup.addChild(spiral)
+	#scaleGroup.addChild(boxes)
 	group.translate(view.center)
 	update_text()
 	update_zoom(true)
@@ -138,7 +141,7 @@ initializePath = () ->
 update_zoom = (initial) ->
 	oz = zoom
 	scale(1/zoom)
-	if settings.infiniteIn
+	if settings.infinite
 		scale(base)
 		offset = -18
 	else
@@ -154,11 +157,11 @@ update_zoom = (initial) ->
 	return
 
 initializePath()
-settings = {infiniteIn: true, labels: false, spiral: true, boxes: true, invert: false}
+settings = {infinite: true, labels: false, spiral: true, boxes: true, invert: false}
 do () ->
 	gui = new dat.GUI()
 	gui.add(settings, 'labels').onChange (value) ->
-		settings.infiniteIn = not value
+		settings.infinite = not value
 		update_zoom()
 		if value
 			update_text()
