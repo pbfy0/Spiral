@@ -50,26 +50,32 @@ document.addEventListener 'mousewheel', (event) ->
 	factor = 1 + Math.abs(event.wheelDelta / 360)
 	if event.wheelDelta < 0
 		factor = 1/factor
-	i = 0
-	c = Math.pow(factor, 1/20)
-	cmp = mousePos
-	interval = setInterval () ->
-		scale(c, mousePos)
-		view.zoom = view.zoom
-		#console.log(zoom)
-		if zoom < base*Math.pow(gr, 12)
-			scale(Math.pow(gr, -12), null, true)
-			offset += 12
-			update_text()
-		if zoom > base*Math.pow(gr, -12) and (offset > 0 or settings.infinite)
-			scale(Math.pow(gr, 12), null, true)
-			offset -= 12
-			update_text()
-		i++
-		if i > 20
-			clearInterval(interval);
-	, 1/120
-
+	total_t = 1000/6
+	#console.log('Start')
+	do () ->
+		elapsed = 0
+		prev = performance.now()
+		tick = (t) ->
+			delta = t - prev
+			prev = t
+			elapsed += delta
+			if elapsed > total_t then delta -= elapsed - total_t
+			#console.log(t, prev, delta, elapsed)
+			c = Math.pow(factor, delta / total_t)
+			scale(c, mousePos)
+			view.zoom = view.zoom
+			#console.log(zoom)
+			if zoom < base*Math.pow(gr, 12)
+				scale(Math.pow(gr, -12), null, true)
+				offset += 12
+				update_text()
+			if zoom > base*Math.pow(gr, -12) and (offset > 0 or settings.infinite)
+				scale(Math.pow(gr, 12), null, true)
+				offset -= 12
+				update_text()
+			if elapsed < total_t
+				requestAnimationFrame(tick)
+		requestAnimationFrame(tick)
 	event.preventDefault()
 	return false
 		#i.fontSize *= factor
@@ -115,7 +121,6 @@ initializePath = () ->
 		t.data.marker = m
 		t.data.dir = dir
 		t.data.n = i
-		t.translate(-t.bounds.width, 0)
 		
 		spiral.addChild(arc)
 		boxes.addChild(r)
@@ -156,16 +161,17 @@ update_zoom = (initial) ->
 
 	return
 
-initializePath()
-settings = {infinite: true, labels: false, spiral: true, boxes: true, invert: false}
 do () ->
+	initializePath()
+	settings = {infinite: true, labels: false, spiral: true, boxes: true, invert: false}
+	
 	gui = new dat.GUI()
 	gui.add(settings, 'labels').onChange (value) ->
 		settings.infinite = not value
 		update_zoom()
 		if value
 			update_text()
-			scale_text(1)
+			scale_text()
 		return
 	gui.add(settings, 'spiral').onChange (value) ->
 		spiral.visible = value
