@@ -161,9 +161,10 @@ update_zoom = (initial) ->
 
 	return
 
+settings = {infinite: true, labels: false, spiral: true, boxes: true, invert: false}
+
 do () ->
 	initializePath()
-	settings = {infinite: true, labels: false, spiral: true, boxes: true, invert: false}
 	
 	gui = new dat.GUI()
 	gui.add(settings, 'labels').onChange (value) ->
