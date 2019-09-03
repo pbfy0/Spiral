@@ -10,8 +10,19 @@ redirect_from: "spiral.html"
     <script type="text/javascript" src="paper-full.js"></script>
 	<script type="text/javascript" src="dat.gui.min.js"></script>
     <script type="text/javascript" src="rAF.js"></script>
-    <script type="text/paperscript" src="spiral.js" canvas="canvas" >
-    </script>
+	<script type="text/javascript">
+window.addEventListener('DOMContentLoaded', (ev) => {
+	let canvas = document.getElementById("canvas");
+	paper.setup(canvas);
+
+	let sc_el = document.createElement('script');
+	sc_el.src = "spiral.js";
+	sc_el.type = "text/javascript";
+	document.head.appendChild(sc_el);
+});
+	</script>
+
+
 </head>
 <body>
     <canvas id="canvas" resize hidpi="off"></canvas>
